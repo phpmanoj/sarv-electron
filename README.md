@@ -62,10 +62,18 @@ remove the quarantine attribute by name:
 xattr -dr com.apple.quarantine "/Applications/Sarv Electron.app"
 ```
 
-Do **not** use `xattr -cr`. It strips every extended attribute, which invalidates
-the app's ad-hoc code signature; macOS then re-verifies the binary constantly and
-the whole app becomes noticeably slow. If that has already happened, repair it
-with `codesign --force --deep --sign - "/Applications/Sarv Electron.app"`.
+Prefer `-dr com.apple.quarantine` over `xattr -cr`: the latter strips every
+extended attribute rather than the one that is in the way.
+
+These builds carry no bundle code signature at all — electron-builder is run with
+`CSC_IDENTITY_AUTO_DISCOVERY=false`, so `Contents/_CodeSignature` is absent and
+`codesign --verify` reports "code has no resources but signature indicates they
+must be present". Only the linker's own ad-hoc signature on the binary is present.
+An ad-hoc bundle signature can be applied after installing:
+
+```bash
+codesign --force --deep --sign - "/Applications/Sarv Electron.app"
+```
 
 Fixing this permanently requires the Apple Developer Program ($99/yr); then set the
 `CSC_LINK` / `CSC_KEY_PASSWORD` env vars and enable notarization.

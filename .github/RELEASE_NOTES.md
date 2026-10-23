@@ -25,9 +25,11 @@ quarantine attribute by name:
 xattr -dr com.apple.quarantine "/Applications/Sarv Electron.app"
 ```
 
-Do **not** use `xattr -cr` — it strips every extended attribute and invalidates
-the ad-hoc code signature, which makes the whole app run slowly. To repair an app
-that was already cleared that way:
+Prefer `-dr com.apple.quarantine` over `xattr -cr`, which strips every extended
+attribute rather than just the one in the way.
+
+This build has no bundle code signature, so `codesign --verify` will complain
+about it. You can apply an ad-hoc one yourself after installing:
 `codesign --force --deep --sign - "/Applications/Sarv Electron.app"`
 
 **Windows** — run the installer. SmartScreen will warn about an unknown
