@@ -1,0 +1,111 @@
+{
+  "name": "sarv-electron",
+  "productName": "Sarv Electron",
+  "version": "1.0.0",
+  "description": "Sarv Electron - FileZilla-style SFTP/FTP client that opens remote files in your own editor",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node test/smoke.js && node test/filezilla.js && node test/tabs.js && node test/e2e.js",
+    "test:ui": "electron test/ui-test.js",
+    "icon": "electron build/make-icon.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:mac:arm": "electron-builder --mac --arm64",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "author": "Manoj Kumar (https://github.com/phpmanoj)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phpmanoj/sarv-electron.git"
+  },
+  "homepage": "https://github.com/phpmanoj/sarv-electron#readme",
+  "bugs": {
+    "url": "https://github.com/phpmanoj/sarv-electron/issues"
+  },
+  "keywords": [
+    "sftp",
+    "ftp",
+    "ftps",
+    "filezilla",
+    "electron",
+    "file-transfer",
+    "remote-edit"
+  ],
+  "dependencies": {
+    "basic-ftp": "^6.2.3",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.sarv.electron",
+    "productName": "Sarv Electron",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "!test${/*}",
+      "!docs${/*}",
+      "!build/*.svg",
+      "!build/make-icon.js",
+      "!**/node_modules/cpu-features${/*}",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "darkModeSupport": true,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "${productName} ${version}"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Development",
+      "target": ["AppImage", "deb"]
+    }
+  }
+}

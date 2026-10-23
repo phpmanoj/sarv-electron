@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:;" />
+<title>Sarv Electron</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="themes.css" />
+</head>
+<body>
+
+<!-- toolbar -->
+<div id="toolbar">
+  <button id="btn-sites" title="Site Manager (Cmd+S)">Site Manager</button>
+  <span class="sep"></span>
+  <button id="btn-refresh" title="Refresh (F5)">Refresh</button>
+  <button id="btn-compare" title="Directory comparison (Cmd+O)">Compare</button>
+  <button id="btn-sync" title="Synchronized browsing (Cmd+Y)">Sync browse</button>
+  <span class="sep"></span>
+  <button id="btn-edited" title="Files currently being edited (Cmd+E)">Being edited <span id="edited-count" class="badge hidden">0</span></button>
+  <span class="sep"></span>
+  <label class="inline" for="theme-picker">Theme</label>
+  <select id="theme-picker" title="Colour theme"></select>
+  <span class="sep"></span>
+  <button id="btn-settings">Settings</button>
+  <span class="spacer"></span>
+  <button id="btn-disconnect" class="danger" disabled>Disconnect</button>
+</div>
+
+<!-- quickconnect -->
+<div id="quickconnect">
+  <select id="qc-protocol" title="Protocol">
+    <option value="sftp">SFTP</option>
+    <option value="ftp">FTP</option>
+    <option value="ftps">FTPS</option>
+  </select>
+  <input id="qc-host" placeholder="Host" size="18" />
+  <input id="qc-user" placeholder="Username" size="14" />
+  <input id="qc-pass" type="password" placeholder="Password" size="14" />
+  <input id="qc-port" placeholder="Port" size="5" />
+  <button id="qc-connect" class="primary">Quickconnect</button>
+  <span class="spacer"></span>
+  <label class="inline"><input type="checkbox" id="log-timestamps" /> timestamps</label>
+  <button id="log-clear" class="link">clear log</button>
+</div>
+
+<!-- message log -->
+<div id="log" class="log"></div>
+
+<!-- the two panes -->
+<div id="panes">
+  <section class="pane" id="pane-local">
+    <header>
+      <span class="pane-title">Local site:</span>
+      <input class="path" id="local-path" spellcheck="false" />
+      <button class="icon" data-act="up" title="Up">↑</button>
+      <button class="icon" data-act="refresh" title="Refresh">⟳</button>
+      <input class="filter" data-act="filter" placeholder="filter files" size="16" />
+    </header>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th data-sort="name">Filename</th>
+        <th data-sort="size" class="num">Filesize</th>
+        <th data-sort="type">Filetype</th>
+        <th data-sort="mtime">Last modified</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <footer class="pane-status"></footer>
+  </section>
+
+  <div id="pane-divider"></div>
+
+  <section class="pane" id="pane-remote">
+    <div class="tabs-bar" id="remote-tabs"></div>
+    <header>
+      <span class="pane-title">Remote site:</span>
+      <input class="path" id="remote-path" spellcheck="false" />
+      <button class="icon" data-act="up" title="Up">↑</button>
+      <button class="icon" data-act="refresh" title="Refresh">⟳</button>
+      <input class="filter" data-act="filter" placeholder="filter files" size="16" />
+    </header>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th data-sort="name">Filename</th>
+        <th data-sort="size" class="num">Filesize</th>
+        <th data-sort="type">Filetype</th>
+        <th data-sort="mtime">Last modified</th>
+        <th data-sort="perm">Permissions</th>
+        <th data-sort="owner">Owner/Group</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <footer class="pane-status"></footer>
+  </section>
+</div>
+
+<!-- transfer queue -->
+<div id="queue">
+  <div class="tabs">
+    <button class="tab active" data-tab="queued">Queued files <span class="count">0</span></button>
+    <button class="tab" data-tab="failed">Failed transfers <span class="count">0</span></button>
+    <button class="tab" data-tab="done">Successful transfers <span class="count">0</span></button>
+    <span class="spacer"></span>
+    <button id="q-cancel" class="link">cancel queued</button>
+    <button id="q-clear" class="link">clear finished</button>
+  </div>
+  <div class="table-wrap"><table id="queue-table">
+    <thead><tr>
+      <th>Server/Local file</th>
+      <th class="dir">Direction</th>
+      <th>Remote file</th>
+      <th class="num">Size</th>
+      <th>Priority</th>
+      <th class="status">Status</th>
+      <th></th>
+    </tr></thead>
+    <tbody></tbody>
+  </table></div>
+</div>
+
+<footer id="statusbar">
+  <span id="status-conn">Not connected</span>
+  <span class="spacer"></span>
+  <span id="status-queue"></span>
+</footer>
+
+<!-- context menu + modal host + toasts -->
+<div id="ctxmenu" class="ctxmenu hidden"></div>
+<div id="modal-host" class="hidden"></div>
+<div id="toasts"></div>
+
+<script src="lib.js"></script>
+<script src="panes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Sarv Electron app icon - chevron only (alternative)
+       Edit this file and run `npm run icon` to rebuild icon.png + icon.icns. -->
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0b2545" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <rect x="64" y="56" width="896" height="896" rx="208" ry="208" fill="#ffffff" filter="url(#shadow)"/>
+
+  <g>
+    <circle cx="512.0" cy="212.0" r="46" fill="#EE7B30"/>
+    <circle cx="626.8" cy="234.8" r="46" fill="#1D4F91"/>
+    <circle cx="724.1" cy="299.9" r="46" fill="#EE7B30"/>
+    <circle cx="789.2" cy="397.2" r="46" fill="#1D4F91"/>
+    <circle cx="812.0" cy="512.0" r="46" fill="#EE7B30"/>
+    <circle cx="789.2" cy="626.8" r="46" fill="#1D4F91"/>
+    <circle cx="724.1" cy="724.1" r="46" fill="#EE7B30"/>
+    <circle cx="626.8" cy="789.2" r="46" fill="#1D4F91"/>
+    <circle cx="512.0" cy="812.0" r="46" fill="#EE7B30"/>
+    <circle cx="397.2" cy="789.2" r="46" fill="#1D4F91"/>
+    <circle cx="299.9" cy="724.1" r="46" fill="#EE7B30"/>
+    <circle cx="234.8" cy="626.8" r="46" fill="#1D4F91"/>
+    <circle cx="212.0" cy="512.0" r="46" fill="#EE7B30"/>
+    <circle cx="234.8" cy="397.2" r="46" fill="#1D4F91"/>
+    <circle cx="299.9" cy="299.9" r="46" fill="#EE7B30"/>
+    <circle cx="397.2" cy="234.8" r="46" fill="#1D4F91"/>
+  </g>
+
+  <path d="M 455 378 L 598 512 L 455 646"
+        fill="none" stroke="#1D4F91" stroke-width="104"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
