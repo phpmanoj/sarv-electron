@@ -47,6 +47,14 @@
   "build": {
     "appId": "com.sarv.electron",
     "productName": "Sarv Electron",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "phpmanoj",
+        "repo": "sarv-electron",
+        "releaseType": "draft"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
