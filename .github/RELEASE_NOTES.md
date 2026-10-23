@@ -6,9 +6,9 @@ moment you save.
 
 | Your machine | File |
 |---|---|
-| Mac with Apple Silicon (M1-M4) | `Sarv-Electron-1.0.0-arm64.dmg` |
-| Mac with Intel | `Sarv-Electron-1.0.0.dmg` |
-| Windows 64-bit | `Sarv-Electron-Setup-1.0.0.exe` |
+| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.0-arm64.dmg` |
+| Mac with Intel | `Sarv.Electron-1.0.0.dmg` |
+| Windows 64-bit | `Sarv.Electron.Setup.1.0.0.exe` |
 
 ## Installing
 
