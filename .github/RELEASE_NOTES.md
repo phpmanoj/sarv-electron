@@ -6,22 +6,29 @@ moment you save.
 
 | Your machine | File |
 |---|---|
-| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.0-arm64.dmg` |
-| Mac with Intel | `Sarv.Electron-1.0.0.dmg` |
-| Windows 64-bit | `Sarv.Electron.Setup.1.0.0.exe` |
+| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.1-arm64.dmg` |
+| Windows 64-bit | `Sarv.Electron.Setup.1.0.1.exe` |
+
+Intel Macs are not built at the moment.
 
 ## Installing
 
 **macOS** — open the `.dmg` and drag the app into your Applications folder.
 
 These builds are **not code-signed**, so macOS will say the app is "damaged".
-It is not; downloaded apps get a quarantine flag. Clear it with:
+It is not; downloaded apps simply get a quarantine flag.
+
+Easiest fix: right-click the app -> **Open** -> **Open**. Otherwise remove the
+quarantine attribute by name:
 
 ```bash
-xattr -cr "/Applications/Sarv Electron.app"
+xattr -dr com.apple.quarantine "/Applications/Sarv Electron.app"
 ```
 
-Or right-click the app -> **Open** -> **Open**.
+Do **not** use `xattr -cr` — it strips every extended attribute and invalidates
+the ad-hoc code signature, which makes the whole app run slowly. To repair an app
+that was already cleared that way:
+`codesign --force --deep --sign - "/Applications/Sarv Electron.app"`
 
 **Windows** — run the installer. SmartScreen will warn about an unknown
 publisher: choose **More info** -> **Run anyway**. You can pick the install

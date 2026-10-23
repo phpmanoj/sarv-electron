@@ -17,7 +17,7 @@ npm start      # npm run dev  -> with DevTools
 
 ```bash
 npm run pack        # .app folder only (no installer) - fastest check
-npm run dist:mac    # macOS: arm64 + Intel .dmg and .zip
+npm run dist:mac    # macOS: Apple Silicon .dmg
 npm run dist:win    # Windows: NSIS .exe installer
 npm run dist:linux  # Linux: AppImage + .deb
 ```
@@ -27,9 +27,10 @@ Files produced on macOS:
 | File | For |
 |---|---|
 | `dist/Sarv Electron-1.0.0-arm64.dmg` | Apple Silicon - drag to Applications |
-| `dist/Sarv Electron-1.0.0.dmg` | Intel Mac |
-| `dist/*-mac.zip` | auto-update / manual distribution |
 | `dist/mac-arm64/Sarv Electron.app` | unpacked app, runs directly |
+
+Only Apple Silicon is built. To also produce an Intel `.dmg`, add `"x64"` to
+`build.mac.target[0].arch` in `package.json`.
 
 **Install:** open the `.dmg`, drag the app into your **Applications** folder. Done.
 
@@ -52,13 +53,19 @@ are kept as workflow artifacts for 7 days.
 
 Builds are **unsigned** (no Apple Developer certificate). They run fine on the
 machine that built them, but anyone who downloads one will see macOS report it as
-"damaged", because downloads get a quarantine flag. The recipient can clear it:
+"damaged", because downloads get a quarantine flag.
+
+The safest fix is to right-click the `.app` -> **Open** -> **Open**. Failing that,
+remove the quarantine attribute by name:
 
 ```bash
-xattr -cr "/Applications/Sarv Electron.app"
+xattr -dr com.apple.quarantine "/Applications/Sarv Electron.app"
 ```
 
-Or right-click the `.app` -> **Open** -> **Open**.
+Do **not** use `xattr -cr`. It strips every extended attribute, which invalidates
+the app's ad-hoc code signature; macOS then re-verifies the binary constantly and
+the whole app becomes noticeably slow. If that has already happened, repair it
+with `codesign --force --deep --sign - "/Applications/Sarv Electron.app"`.
 
 Fixing this permanently requires the Apple Developer Program ($99/yr); then set the
 `CSC_LINK` / `CSC_KEY_PASSWORD` env vars and enable notarization.
@@ -77,8 +84,9 @@ electron build/make-icon.js icon-chevron.svg   # build from another variant
 
 | File | What it is |
 |---|---|
-| `build/icon.svg` | **live icon** — an "E" inside the bead ring |
-| `build/icon-chevron.svg` | chevron-only version |
+| `build/icon.svg` | **live icon** — an "E" on a light disc inside a navy squircle |
+| `build/icon-navy-e.svg` | same design, kept as the named variant |
+| `build/icon-chevron.svg` | chevron on a white squircle |
 | `build/icon-chevron-e.svg` | chevron + E |
 
 To use a different variant, copy its contents into `build/icon.svg` and run
