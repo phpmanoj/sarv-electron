@@ -113,6 +113,35 @@ builds use `build/icon.icns`.
 - Connecting logs phase-by-phase timings (`tcp+kex`, `auth`, `sftp`, `realpath`) so
   the real cause of a slow connection is visible
 
+**Speed limits**
+- Settings -> Speed limits: a master toggle plus separate download and upload
+  caps in KB/s, where 0 means no limit for that direction
+- A limit caps the whole session rather than each transfer, so concurrent
+  transfers in the same direction share it — two downloads under a 100 KB/s cap
+  get 50 KB/s each
+- Unlimited transfers keep the fast parallel-read path; the throttled path is
+  only used when a limit is actually set
+
+**ASCII / binary transfer mode**
+- Settings -> Transfers -> Transfer mode: **Auto**, **ASCII** or **Binary**
+- Auto picks ASCII for text files by extension (and for extensionless files)
+  and binary for everything else; the extension list is editable
+- ASCII converts line endings — CRLF on the server, LF locally — and the
+  conversion is applied client-side for both SFTP and FTP, so the two protocols
+  behave identically
+- "Allow fall back to other transfer mode on failure" retries a failed ASCII
+  transfer once as binary
+
+**Bookmarks**
+- **Bookmarks -> Add bookmark...** (Cmd+B) stores the directories both panes are
+  currently showing
+- **Global bookmark** works everywhere; **Site-specific bookmark** only appears
+  while connected to that saved site, and is deleted along with it
+- Each bookmark holds a local path, a remote path and an optional
+  "use synchronized browsing" flag; leaving a path empty leaves that pane alone
+- **Manage bookmarks...** lists them with Open / Edit / Delete
+- Names must be unique within their scope
+
 **Themes — 25 + System**
 - A dropdown directly in the toolbar, split into Light and Dark groups
 - **Light (12):** neutral, Sarv orange, Sky blue, Mint green, Emerald green,
@@ -256,9 +285,6 @@ yet, so each is a from-scratch feature:
 | Feature | Notes |
 |---|---|
 | Resume interrupted transfers | Needs restart-offset support in both the SFTP and FTP backends |
-| Speed limits | Separate download/upload caps, applied by throttling the transfer streams |
-| ASCII / binary transfer mode | Auto / ASCII / Binary, with fallback on failure |
-| Bookmarks | Global and site-specific, storing a local and a remote path |
 | Directory tree view | A collapsible tree alongside each pane, toggled independently |
 | Remote search | Recursive server-side file search with downloadable results |
 | Filters / filter sets | Named, reusable include/exclude rule sets for both panes |
@@ -266,8 +292,8 @@ yet, so each is a from-scratch feature:
 | Master password | One passphrase encrypting every stored credential |
 
 Already implemented, despite being FileZilla headline features: **tabs** (multiple
-servers at once) and **multiple simultaneous transfers** (see *Concurrent transfers*
-above).
+servers at once), **multiple simultaneous transfers** (see *Concurrent transfers*),
+**speed limits**, **ASCII/binary transfer mode** and **bookmarks**.
 
 ## License
 

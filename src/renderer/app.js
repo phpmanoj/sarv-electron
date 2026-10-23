@@ -2151,6 +2151,136 @@ async function init() {
 
   /* ------------------------------------------------------- menu actions */
 
+  /* ---------------------------------------------------------- bookmarks */
+
+  /** Jump both panes to a bookmark's paths, honouring its sync flag. */
+  async function openBookmark(bookmark) {
+    if (bookmark.remotePath) {
+      if (!app.status.connected) { L.toast('Not connected to any server.', 'warn'); return; }
+      await navigateRemote(bookmark.remotePath, true);
+    }
+    if (bookmark.localPath) await navigateLocal(bookmark.localPath, true);
+    if (bookmark.syncBrowsing && !app.syncOn) toggleSync();
+    log('info', 'Bookmark: ' + bookmark.name);
+  }
+
+  /** "Add bookmark..." - seeded with wherever the panes are sitting now. */
+  async function showAddBookmark(existing) {
+    const bookmark = existing || {};
+    const siteId = app.status.connected ? (app.status.info.siteId || null) : null;
+    const siteName = app.status.connected ? app.status.info.siteName : '';
+
+    const name = el('input', { value: bookmark.name || '', style: 'flex:1' });
+    const localPath = el('input', {
+      value: bookmark.localPath !== undefined ? bookmark.localPath : (app.localPane.path || ''),
+      style: 'flex:1',
+    });
+    const remotePath = el('input', {
+      value: bookmark.remotePath !== undefined ? bookmark.remotePath : (app.remotePane.path || ''),
+      style: 'flex:1',
+    });
+    const sync = el('input', { type: 'checkbox', checked: Boolean(bookmark.syncBrowsing) });
+
+    // FileZilla offers "Global bookmark" / "Site-specific bookmark"; the second
+    // is only meaningful while connected to a saved site.
+    const scope = el('select', {}, [
+      el('option', { value: 'global', text: 'Global bookmark' }),
+      el('option', {
+        value: 'site',
+        text: siteId ? `Site-specific bookmark (${siteName})` : 'Site-specific bookmark (connect to a saved site first)',
+        disabled: !siteId,
+      }),
+    ]);
+    scope.value = (existing ? existing.siteId : siteId) ? 'site' : 'global';
+
+    const result = await L.modal({
+      title: existing && existing.id ? 'Edit bookmark' : 'Add bookmark',
+      narrow: true,
+      body: el('div', { class: 'grid' }, [
+        el('label', { text: 'Name:' }), name,
+        el('label', { text: 'Type:' }), scope,
+        el('label', { text: 'Local directory:' }), el('div', { class: 'row' }, [localPath, el('button', {
+          text: 'Browse...',
+          onclick: async () => { const p = L.unwrap(await window.api.local.pickDir()); if (p) localPath.value = p; },
+        })]),
+        el('label', { text: 'Remote directory:' }), remotePath,
+        el('div', { class: 'full' }, [el('label', { class: 'inline' }, [sync, 'Use synchronized browsing'])]),
+        el('div', { class: 'full' }, [el('p', {
+          class: 'hint', style: 'margin:0',
+          text: 'Leave a directory empty to leave that pane where it is.',
+        })]),
+      ]),
+      buttons: [
+        { label: 'Cancel', value: null },
+        { label: 'Save', value: 'save', primary: true },
+      ],
+    });
+    if (result !== 'save') return;
+
+    const payload = {
+      id: existing ? existing.id : undefined,
+      name: name.value.trim(),
+      siteId: scope.value === 'site' ? (existing ? existing.siteId : siteId) : null,
+      localPath: localPath.value.trim(),
+      remotePath: remotePath.value.trim(),
+      syncBrowsing: sync.checked,
+    };
+    const saved = L.unwrap(await window.api.bookmarks.save(payload), 'Bookmark');
+    if (saved) L.toast('Bookmark saved: ' + saved.name, 'ok');
+  }
+
+  /** "Manage bookmarks..." - list, open, edit and delete. */
+  async function showManageBookmarks() {
+    const siteId = app.status.connected ? (app.status.info.siteId || null) : null;
+    const list = L.unwrap(await window.api.bookmarks.list({ siteId }), 'Bookmarks') || [];
+
+    if (!list.length) {
+      L.modal({
+        title: 'Manage bookmarks',
+        narrow: true,
+        body: el('p', { class: 'hint', style: 'margin:0', text: 'No bookmarks yet. Use Bookmarks -> Add bookmark to store the current directories.' }),
+        buttons: [{ label: 'Close', value: null, primary: true }],
+      });
+      return;
+    }
+
+    const rows = list.map((bookmark) => el('div', { class: 'row', style: 'gap:8px;align-items:center' }, [
+      el('div', { style: 'flex:1;min-width:0' }, [
+        el('div', { text: bookmark.name }),
+        el('div', {
+          class: 'hint',
+          style: 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
+          text: [bookmark.siteId ? 'site' : 'global', bookmark.remotePath, bookmark.localPath]
+            .filter(Boolean).join('  ·  '),
+        }),
+      ]),
+      el('button', { text: 'Open', onclick: () => { L.closeModal(); openBookmark(bookmark); } }),
+      el('button', { text: 'Edit', onclick: () => { L.closeModal(); showAddBookmark(bookmark); } }),
+      el('button', {
+        text: 'Delete',
+        onclick: async () => {
+          L.closeModal();
+          const yes = await L.confirm({
+            title: 'Delete bookmark',
+            message: `Delete "${bookmark.name}"?`,
+            ok: 'Delete',
+            danger: true,
+          });
+          if (!yes) { showManageBookmarks(); return; }
+          L.unwrap(await window.api.bookmarks.remove({ id: bookmark.id }), 'Bookmark');
+          showManageBookmarks();
+        },
+      }),
+    ]));
+
+    L.modal({
+      title: 'Manage bookmarks',
+      narrow: true,
+      body: el('div', { style: 'display:flex;flex-direction:column;gap:10px' }, rows),
+      buttons: [{ label: 'Close', value: null, primary: true }],
+    });
+  }
+
   window.api.onMenu((action) => {
     switch (action) {
       case 'site-manager': showSiteManager(); break;
@@ -2189,17 +2319,8 @@ async function init() {
           showHiddenRemote: !app.settings.showHiddenRemote,
         }).then((res) => { const n = L.unwrap(res); if (n) applySettings(n); });
         break;
-      case 'show-spec':
-        L.modal({
-          title: 'Where these features come from',
-          narrow: true,
-          body: el('div', {}, [
-            el('p', { style: 'margin:0 0 8px', text: 'Sarv Electron ka feature set FileZilla 3.71.1 ko REA se analyze karke nikala gaya hai.' }),
-            el('p', { class: 'hint', style: 'margin:0', text: 'Poori evidence: docs/REVERSE-ENGINEERED-SPEC.md' }),
-          ]),
-          buttons: [{ label: 'Close', value: null, primary: true }],
-        });
-        break;
+      case 'add-bookmark': showAddBookmark(); break;
+      case 'manage-bookmarks': showManageBookmarks(); break;
       default: break;
     }
   });

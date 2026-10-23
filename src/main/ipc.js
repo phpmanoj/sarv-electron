@@ -93,6 +93,10 @@ function register(getWindow) {
   handle('sites:removeFolder', ({ name }) => store.removeFolder(name));
   handle('sites:setFolder', ({ id, folder }) => store.setSiteFolder(id, folder));
 
+  handle('bookmarks:list', ({ siteId } = {}) => store.listBookmarks(siteId || null));
+  handle('bookmarks:save', (bookmark) => store.saveBookmark(bookmark));
+  handle('bookmarks:remove', ({ id }) => store.removeBookmark(id));
+
   /* ------------------------------------------- FileZilla import / export */
 
   handle('fz:detect', () => {
@@ -167,6 +171,9 @@ function register(getWindow) {
     const settings = store.getSettings();
     const status = await entry.session.connect(Object.assign({}, config, {
       connectTimeout: settings.connectTimeout,
+      // Carried through so the session can report which saved site it is on,
+      // which is what site-specific bookmarks are scoped by.
+      siteId: payload.siteId || null,
     }));
     store.setLastSession({ siteId: payload.siteId || null, host: config.host, user: config.user });
     manager.announce();

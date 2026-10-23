@@ -112,9 +112,19 @@ function buildMenu() {
       ],
     },
     {
+      label: '&Bookmarks',
+      submenu: [
+        { label: 'Add bookmark...', accelerator: 'CmdOrCtrl+B', click: () => send('add-bookmark') },
+        { label: 'Manage bookmarks...', click: () => send('manage-bookmarks') },
+      ],
+    },
+    {
       label: '&Help',
       submenu: [
-        { label: 'Reverse-engineered spec', click: () => send('show-spec') },
+        {
+          label: 'Project on GitHub',
+          click: () => shell.openExternal('https://github.com/phpmanoj/sarv-electron'),
+        },
       ],
     },
   ];

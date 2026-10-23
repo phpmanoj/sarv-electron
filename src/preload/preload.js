@@ -24,6 +24,11 @@ contextBridge.exposeInMainWorld('api', {
     removeFolder: call('sites:removeFolder'),
     setFolder: call('sites:setFolder'),
   },
+  bookmarks: {
+    list: call('bookmarks:list'),
+    save: call('bookmarks:save'),
+    remove: call('bookmarks:remove'),
+  },
   filezilla: {
     detect: call('fz:detect'),
     pickFile: call('fz:pickFile'),

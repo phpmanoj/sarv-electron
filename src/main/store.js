@@ -380,6 +380,11 @@ function setSiteFolder(id, folder) {
 function removeSite(id) {
   const sites = rawSites().filter((s) => s.id !== id);
   writeJson('sites.json', sites);
+  // Site-specific bookmarks would otherwise outlive the site they point at.
+  const bookmarks = readJson('bookmarks.json', []);
+  if (Array.isArray(bookmarks) && bookmarks.some((b) => b && b.siteId === id)) {
+    writeJson('bookmarks.json', bookmarks.filter((b) => !b || b.siteId !== id));
+  }
   return true;
 }
 
@@ -391,6 +396,67 @@ function getSiteSecrets(id) {
     password: decrypt(site.password),
     passphrase: decrypt(site.passphrase),
   });
+}
+
+/* --------------------------------------------------------------- bookmarks
+
+   FileZilla offers a "Global bookmark" and a "Site-specific bookmark"; both
+   live here in one file, told apart by siteId (null means global). A bookmark
+   stores the pair of paths to jump to, and whether to turn on synchronized
+   browsing on arrival.                                                      */
+
+function rawBookmarks() {
+  const list = readJson('bookmarks.json', []);
+  return Array.isArray(list) ? list.filter((b) => b && b.id && b.name) : [];
+}
+
+/** Global bookmarks, plus the ones belonging to `siteId` when given. */
+function listBookmarks(siteId) {
+  return rawBookmarks()
+    .filter((b) => !b.siteId || (siteId && b.siteId === siteId))
+    .sort((a, b) => {
+      // Global entries first, then alphabetically - the order FileZilla shows.
+      if (Boolean(a.siteId) !== Boolean(b.siteId)) return a.siteId ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+}
+
+/**
+ * Create or update a bookmark. Names must be unique within their scope, which
+ * is what FileZilla's "A bookmark with the entered name already exists"
+ * message enforces.
+ */
+function saveBookmark(input) {
+  const bookmark = input || {};
+  const name = String(bookmark.name || '').trim();
+  if (!name) throw new Error('Bookmark name is required');
+
+  const siteId = bookmark.siteId || null;
+  const list = rawBookmarks();
+  const clash = list.find((b) => b.id !== bookmark.id
+    && (b.siteId || null) === siteId
+    && b.name.toLowerCase() === name.toLowerCase());
+  if (clash) throw new Error('A bookmark with the entered name already exists. Please enter an unused name.');
+
+  const next = {
+    id: bookmark.id || 'bm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    name,
+    siteId,
+    localPath: String(bookmark.localPath || ''),
+    remotePath: String(bookmark.remotePath || ''),
+    syncBrowsing: Boolean(bookmark.syncBrowsing),
+  };
+
+  const index = list.findIndex((b) => b.id === next.id);
+  if (index >= 0) list[index] = next;
+  else list.push(next);
+  writeJson('bookmarks.json', list);
+  return next;
+}
+
+function removeBookmark(id) {
+  writeJson('bookmarks.json', rawBookmarks().filter((b) => b.id !== id));
+  return true;
 }
 
 /* --------------------------------------------------------------- last used */
@@ -421,6 +487,9 @@ module.exports = {
   saveSite,
   removeSite,
   getSiteSecrets,
+  listBookmarks,
+  saveBookmark,
+  removeBookmark,
   getLastSession,
   setLastSession,
   encryptionAvailable: canEncrypt,

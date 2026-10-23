@@ -183,6 +183,7 @@ class Session {
         localPath: cfg.localPath || '',
         syncBrowsing: Boolean(cfg.syncBrowsing),
         siteName: cfg.name || cfg.host,
+        siteId: cfg.siteId || null,
       };
 
       const breakdown = adapter.describeTimings ? adapter.describeTimings() : '';
