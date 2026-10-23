@@ -4,9 +4,6 @@ FileZilla-style SFTP / FTP / FTPS client — simple design, aur iski asli khaasi
 **remote file ko aapke chune hue editor me kholta hai aur save karte hi server par
 wapas upload kar deta hai.**
 
-Feature set guess nahi kiya gaya — asli FileZilla 3.71.1 ko REA se reverse engineer
-karke nikala gaya hai. Poori evidence: [`docs/REVERSE-ENGINEERED-SPEC.md`](docs/REVERSE-ENGINEERED-SPEC.md).
-
 ## Chalane ke liye
 
 ```bash
@@ -82,23 +79,6 @@ Koi dusra variant chahiye to us file ka content `build/icon.svg` me daal kar
 `#1D4F91` (blue). Dev me dock icon `app.dock.setIcon()` se lagta hai,
 packaged build `build/icon.icns` use karega.
 
-## Tests
-
-```bash
-npm test        # 179 checks: logic, folders, FileZilla import/export, multi-tab, SFTP end-to-end
-npm run test:ui # 91 checks: asli Electron window - layout, 21 themes, tabs, folder tree, dialogs
-```
-
-`npm test` ek asli SFTP server in-process chalata hai (`test/sftp-server.js`) aur
-verify karta hai: connect, list, recursive download/upload, mkdir, rename, chmod,
-delete, **View/Edit ka poora flow** (save karte hi server par upload, prompt mode,
-already-being-edited guard, unedit), aur **configured path par connect hona** +
-path galat ho to fallback. Koi external server ki zarurat nahi.
-
-`test/filezilla.js` import/export ko aapki asli `sitemanager.xml` ke against bhi
-chalata hai (read-only) — 173 sites parse hoti hain aur re-export karke har site
-field-by-field match hoti hai.
-
 ## Jo kaam karta hai
 
 **Connection**
@@ -138,7 +118,6 @@ field-by-field match hoti hai.
 - Turant apply hoti hai aur save ho jati hai; native title bar bhi match karta hai
 - Nayi theme add karni ho to `src/renderer/themes.css` me ek
   `:root[data-theme="name"]` block aur `app.js` ke `THEMES` array me ek line — bas
-  (test dono ko sync me rakhta hai)
 
 **Apni theme khud banao**
 - Settings → Appearance → **Create new theme...**

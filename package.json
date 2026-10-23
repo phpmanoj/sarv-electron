@@ -7,8 +7,6 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "test": "node test/smoke.js && node test/filezilla.js && node test/tabs.js && node test/e2e.js",
-    "test:ui": "electron test/ui-test.js",
     "icon": "electron build/make-icon.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
@@ -61,8 +59,6 @@
     },
     "files": [
       "**/*",
-      "!test${/*}",
-      "!docs${/*}",
       "!build/*.svg",
       "!build/make-icon.js",
       "!**/node_modules/cpu-features${/*}",
