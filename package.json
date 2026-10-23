@@ -45,14 +45,6 @@
   "build": {
     "appId": "com.sarv.electron",
     "productName": "Sarv Electron",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "phpmanoj",
-        "repo": "sarv-electron",
-        "releaseType": "draft"
-      }
-    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -79,11 +71,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ]
     },
@@ -95,7 +93,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -109,7 +109,10 @@
     "linux": {
       "icon": "build/icon.png",
       "category": "Development",
-      "target": ["AppImage", "deb"]
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   }
 }

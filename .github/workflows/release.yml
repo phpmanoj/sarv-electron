@@ -1,8 +1,11 @@
 name: Build & Release
 
-# Tag push karne par (v1.0.0 jaisa) macOS .dmg aur Windows .exe banakar
-# GitHub Release par chipka deta hai. Manually chalane par sirf build
-# karke artifacts me rakh deta hai - koi release nahi banti.
+# Tag push (v1.0.0) builds macOS and Windows installers and collects them into
+# ONE draft Release. Manual runs build only and keep the output as artifacts.
+#
+# The build jobs deliberately never touch the Release: when they each published
+# their own output, the two of them raced and created two drafts holding half
+# the files each. Only the single release job below talks to the Releases API.
 on:
   push:
     tags:
@@ -38,29 +41,53 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Tag push -> build karke draft Release par upload
-      - name: Build and publish
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: npx electron-builder --${{ matrix.platform }} --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      # Manual run -> sirf build, publish nahi
-      - name: Build only
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      - name: Build installers
         run: npx electron-builder --${{ matrix.platform }} --publish never
         env:
+          # No signing certificate is configured; without this electron-builder
+          # hunts for one on the macOS runner and fails the build.
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload build artifacts
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+      - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: |
             dist/*.dmg
-            dist/*.zip
             dist/*.exe
-          if-no-files-found: ignore
+            dist/*.zip
+          if-no-files-found: error
           retention-days: 7
+
+  release:
+    name: Collect into one draft Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download every platform's installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create the draft Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          find artifacts -type f | sort
+          mapfile -t files < <(find artifacts -type f \
+            \( -name '*.dmg' -o -name '*.exe' -o -name '*.zip' \) | sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No installers were produced" >&2
+            exit 1
+          fi
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft \
+            --title "${GITHUB_REF_NAME#v}" \
+            --notes-file .github/RELEASE_NOTES.md \
+            "${files[@]}"
