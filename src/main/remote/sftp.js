@@ -1,7 +1,9 @@
 'use strict';
 const fs = require('fs');
 const path = require('path').posix;
+const { pipeline } = require('stream/promises');
 const Client = require('ssh2-sftp-client');
+const { Throttle, AsciiLineEndings } = require('../transfer-stream');
 
 /** Convert "rwxr-xr--" into 0o754. */
 function permsToMode(perms) {
@@ -139,16 +141,55 @@ class SftpAdapter {
     };
   }
 
-  async download(remotePath, localPath, onProgress) {
-    await this.client.fastGet(remotePath, localPath, {
-      step: (transferred, _chunk, total) => onProgress && onProgress(transferred, total),
-    });
+  async download(remotePath, localPath, onProgress, expectedTotal, options) {
+    const opts = options || {};
+    const limit = Number(opts.bytesPerSecond) > 0 ? Number(opts.bytesPerSecond) : 0;
+
+    // fastGet issues parallel reads and is markedly quicker, but it hands back
+    // no stream to throttle or convert - so it stays the path for plain
+    // binary transfers at full speed.
+    if (!limit && !opts.ascii) {
+      await this.client.fastGet(remotePath, localPath, {
+        step: (transferred, _chunk, total) => onProgress && onProgress(transferred, total),
+      });
+      return;
+    }
+
+    const total = Number(expectedTotal) || 0;
+    // Throttle first so progress counts bytes off the wire, then convert.
+    const stages = [new Throttle(limit, (n) => onProgress && onProgress(n, total))];
+    if (opts.ascii) stages.push(new AsciiLineEndings('to-local'));
+
+    await pipeline(
+      this.client.createReadStream(remotePath),
+      ...stages,
+      fs.createWriteStream(localPath),
+    );
   }
 
-  async upload(localPath, remotePath, onProgress) {
-    await this.client.fastPut(localPath, remotePath, {
-      step: (transferred, _chunk, total) => onProgress && onProgress(transferred, total),
-    });
+  async upload(localPath, remotePath, onProgress, expectedTotal, options) {
+    const opts = options || {};
+    const limit = Number(opts.bytesPerSecond) > 0 ? Number(opts.bytesPerSecond) : 0;
+
+    if (!limit && !opts.ascii) {
+      await this.client.fastPut(localPath, remotePath, {
+        step: (transferred, _chunk, total) => onProgress && onProgress(transferred, total),
+      });
+      return;
+    }
+
+    const total = Number(expectedTotal) || 0;
+    // Convert first, then throttle, so the rate applies to what actually goes
+    // out - an ASCII upload grows by one byte per line ending.
+    const stages = [];
+    if (opts.ascii) stages.push(new AsciiLineEndings('to-remote'));
+    stages.push(new Throttle(limit, (n) => onProgress && onProgress(n, total)));
+
+    await pipeline(
+      fs.createReadStream(localPath),
+      ...stages,
+      this.client.createWriteStream(remotePath),
+    );
   }
 
   async mkdir(remotePath) {

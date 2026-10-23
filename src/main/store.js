@@ -60,6 +60,21 @@ const DEFAULT_SETTINGS = {
   // seconds; 0 keeps the library default
   connectTimeout: 20,
 
+  /* ---- speed limits (FileZilla: "Speed limits") ---- */
+  // "&Enable speed limits" - the master toggle shown in the status bar
+  speedLimitEnabled: false,
+  // kilobytes per second; 0 means no limit for that direction
+  speedLimitDown: 0,
+  speedLimitUp: 0,
+
+  /* ---- transfer mode (FileZilla: "&Transfer mode:") ---- */
+  // 'auto' decides per extension, 'ascii' and 'binary' force one
+  transferMode: 'auto',
+  // "Allow &fall back to other transfer mode on failure"
+  transferModeFallback: true,
+  // empty uses DEFAULT_ASCII_EXTENSIONS from transfer-stream.js
+  asciiExtensions: [],
+
   /* ---- transfers ("Default file exists action") ---- */
   // 'overwrite' | 'overwrite-different-size' | 'overwrite-size-or-newer' | 'rename' | 'skip'
   transferExisting: 'overwrite',

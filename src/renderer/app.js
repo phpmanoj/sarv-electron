@@ -1649,6 +1649,24 @@ async function showSettings() {
   const maxTransfers = el('input', { value: String(s.maxTransfers || 2), size: 4 });
   const maxDownloads = el('input', { value: String(s.maxDownloads || 0), size: 4 });
   const maxUploads = el('input', { value: String(s.maxUploads || 0), size: 4 });
+
+  const speedLimitEnabled = el('input', { type: 'checkbox', checked: s.speedLimitEnabled });
+  const speedLimitDown = el('input', { value: String(s.speedLimitDown || 0), size: 6 });
+  const speedLimitUp = el('input', { value: String(s.speedLimitUp || 0), size: 6 });
+
+  const transferMode = el('select', {}, [
+    el('option', { value: 'auto', text: 'Auto' }),
+    el('option', { value: 'ascii', text: 'ASCII' }),
+    el('option', { value: 'binary', text: 'Binary' }),
+  ]);
+  transferMode.value = s.transferMode || 'auto';
+  const transferModeFallback = el('input', {
+    type: 'checkbox', checked: s.transferModeFallback !== false,
+  });
+  const asciiExtensions = el('input', {
+    value: (s.asciiExtensions || []).join(' '), style: 'flex:1',
+    placeholder: 'leave empty for the built-in list',
+  });
   const connectTimeout = el('input', { value: String(s.connectTimeout || 20), size: 4 });
   const confirmDelete = el('input', { type: 'checkbox', checked: s.confirmDelete });
   const showHidden = el('input', { type: 'checkbox', checked: s.showHiddenLocal });
@@ -1765,14 +1783,27 @@ async function showSettings() {
         el('label', { text: 'Maximum simultaneous transfers:' }), maxTransfers,
         el('label', { text: 'Limit for concurrent downloads:' }), maxDownloads,
         el('label', { text: 'Limit for concurrent uploads:' }), maxUploads,
-        el('div', { class: 'full' }, [el('p', { class: 'hint', style: 'margin:0', text: 'Transfers 1-10. Downloads/uploads 0-10, jahan 0 ka matlab alag se koi limit nahi. Har transfer slot apna connection kholta hai; browsing ke liye alag control connection rehta hai.' })]),
+        el('div', { class: 'full' }, [el('p', { class: 'hint', style: 'margin:0', text: 'Transfers 1-10. Downloads/uploads 0-10, where 0 means no separate limit. Each transfer slot opens its own connection; a separate control connection stays free for browsing.' })]),
         el('label', { text: 'Connection timeout (seconds):' }), connectTimeout,
+      ]),
+    ]),
+    el('fieldset', {}, [
+      el('legend', { text: 'Speed limits' }),
+      el('div', { class: 'grid' }, [
+        el('div', { class: 'full' }, [el('label', { class: 'inline' }, [speedLimitEnabled, 'Enable speed limits'])]),
+        el('label', { text: 'Download limit (KB/s):' }), speedLimitDown,
+        el('label', { text: 'Upload limit (KB/s):' }), speedLimitUp,
+        el('div', { class: 'full' }, [el('p', { class: 'hint', style: 'margin:0', text: '0 means no limit for that direction. A limit applies to the whole session, so concurrent transfers in the same direction share it.' })]),
       ]),
     ]),
     el('fieldset', {}, [
       el('legend', { text: 'Transfers' }),
       el('div', { class: 'grid' }, [
         el('label', { text: 'Default file exists action:' }), existing,
+        el('label', { text: 'Transfer mode:' }), transferMode,
+        el('div', { class: 'full' }, [el('label', { class: 'inline' }, [transferModeFallback, 'Allow fall back to other transfer mode on failure'])]),
+        el('label', { text: 'ASCII extensions:' }), asciiExtensions,
+        el('div', { class: 'full' }, [el('p', { class: 'hint', style: 'margin:0', text: 'Auto picks ASCII for text files by extension and binary for everything else. ASCII converts line endings (CRLF on the server, LF locally). Separate extensions with spaces.' })]),
         el('div', { class: 'full' }, [el('label', { class: 'inline' }, [confirmDelete, 'Confirm before deleting files'])]),
       ]),
     ]),
@@ -1837,6 +1868,13 @@ async function showSettings() {
     associations: assocList.filter((a) => a.ext && (a.value || a.mode === 'system')),
     editTempDir: tempDir.value.trim(),
     transferExisting: existing.value,
+    speedLimitEnabled: speedLimitEnabled.checked,
+    speedLimitDown: clampNum(speedLimitDown.value, 0, 1048576, 0),
+    speedLimitUp: clampNum(speedLimitUp.value, 0, 1048576, 0),
+    transferMode: transferMode.value,
+    transferModeFallback: transferModeFallback.checked,
+    asciiExtensions: asciiExtensions.value
+      .split(/[\s,]+/).map((e) => e.trim().replace(/^\./, '').toLowerCase()).filter(Boolean),
     confirmDelete: confirmDelete.checked,
     showHiddenLocal: showHidden.checked,
     showHiddenRemote: showHidden.checked,

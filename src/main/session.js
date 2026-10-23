@@ -7,6 +7,7 @@ const rpath = require('path').posix;
 const SftpAdapter = require('./remote/sftp');
 const FtpAdapter = require('./remote/ftp');
 const localfs = require('./localfs');
+const { isAsciiTransfer } = require('./transfer-stream');
 
 let seq = 0;
 const nextId = () => 'tx' + (seq += 1);
@@ -48,6 +49,36 @@ class Session {
     const raw = direction === 'down' ? this.settings.maxDownloads : this.settings.maxUploads;
     const value = clamp(Number(raw) || 0, 0, 10);
     return value === 0 ? Infinity : value;   // 0 means "no separate limit"
+  }
+
+  /**
+   * Throttle budget and ASCII decision for one item.
+   *
+   * A speed limit caps the session, not each transfer, so it is split across
+   * the transfers already running in that direction: two concurrent downloads
+   * under a 100 KB/s cap get 50 KB/s each. The item is already marked active
+   * by the scheduler before this runs, so it counts itself.
+   */
+  transferOptions(item, forceBinary) {
+    const settings = this.settings || {};
+    const ascii = forceBinary
+      ? false
+      : isAsciiTransfer(item.name, settings.transferMode || 'auto', settings.asciiExtensions);
+
+    let bytesPerSecond = 0;
+    if (settings.speedLimitEnabled) {
+      const kb = item.direction === 'down' ? settings.speedLimitDown : settings.speedLimitUp;
+      const limit = Number(kb) > 0 ? Number(kb) * 1024 : 0;
+      if (limit) {
+        const sharing = this.queue.filter(
+          (q) => q.status === 'active' && q.direction === item.direction,
+        ).length || 1;
+        // Never starve a transfer down to nothing when many share a small cap.
+        bytesPerSecond = Math.max(1024, Math.floor(limit / sharing));
+      }
+    }
+
+    return { ascii, bytesPerSecond };
   }
 
   /* ----------------------------------------------------------- plumbing */
@@ -450,6 +481,19 @@ class Session {
       }
     };
 
+    // "Allow fall back to other transfer mode on failure": one ASCII transfer
+    // that fails is retried as binary before the item is reported as failed.
+    const attempt = async (forceBinary) => {
+      const opts = this.transferOptions(item, forceBinary);
+      if (opts.ascii) this.log('info', `ASCII mode: ${item.name}`);
+      if (item.direction === 'down') {
+        await adapter.download(item.remotePath, item.localPath, onProgress, item.size, opts);
+      } else {
+        await adapter.upload(item.localPath, item.remotePath, onProgress, item.size, opts);
+      }
+      return opts.ascii;
+    };
+
     try {
       if (item.direction === 'down') {
         await fsp.mkdir(nodePath.dirname(item.localPath), { recursive: true });
@@ -461,10 +505,23 @@ class Session {
           return;
         }
         item.localPath = target;
-        await adapter.download(item.remotePath, target, onProgress, item.size);
-        this.log('ok', `Downloaded ${item.remotePath} -> ${target}`);
+      }
+
+      try {
+        await attempt(false);
+      } catch (err) {
+        const usedAscii = isAsciiTransfer(
+          item.name, (this.settings || {}).transferMode || 'auto', (this.settings || {}).asciiExtensions,
+        );
+        if (!usedAscii || this.settings.transferModeFallback === false) throw err;
+        this.log('warn', `ASCII transfer failed (${item.name}), retrying as binary: ${err.message}`);
+        item.transferred = 0;
+        await attempt(true);
+      }
+
+      if (item.direction === 'down') {
+        this.log('ok', `Downloaded ${item.remotePath} -> ${item.localPath}`);
       } else {
-        await adapter.upload(item.localPath, item.remotePath, onProgress, item.size);
         this.log('ok', `Uploaded ${item.localPath} -> ${item.remotePath}`);
       }
       item.transferred = item.size;

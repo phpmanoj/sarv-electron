@@ -1,6 +1,8 @@
 'use strict';
+const fs = require('fs');
 const path = require('path').posix;
 const ftp = require('basic-ftp');
+const { Throttle, AsciiLineEndings } = require('../transfer-stream');
 
 function permsToString(p) {
   if (!p) return '';
@@ -88,14 +90,60 @@ class FtpAdapter {
     });
   }
 
-  async download(remotePath, localPath, onProgress, expectedTotal) {
-    await this._withProgress(onProgress, expectedTotal, () =>
-      this.client.downloadTo(localPath, remotePath));
+  /**
+   * Stages placed between the socket and the local file. Returning an empty
+   * list means the plain path-based transfer is used, which is faster.
+   *
+   * ASCII mode converts line endings here rather than via TYPE A: the bytes on
+   * the wire come out the same, and it keeps FTP and SFTP behaving identically.
+   */
+  _stages(options, direction) {
+    const opts = options || {};
+    const limit = Number(opts.bytesPerSecond) > 0 ? Number(opts.bytesPerSecond) : 0;
+    if (!limit && !opts.ascii) return [];
+    const stages = [];
+    if (direction === 'to-remote' && opts.ascii) stages.push(new AsciiLineEndings('to-remote'));
+    stages.push(new Throttle(limit));
+    if (direction === 'to-local' && opts.ascii) stages.push(new AsciiLineEndings('to-local'));
+    return stages;
   }
 
-  async upload(localPath, remotePath, onProgress, expectedTotal) {
+  async download(remotePath, localPath, onProgress, expectedTotal, options) {
+    const stages = this._stages(options, 'to-local');
+    if (!stages.length) {
+      await this._withProgress(onProgress, expectedTotal, () =>
+        this.client.downloadTo(localPath, remotePath));
+      return;
+    }
+
+    const out = fs.createWriteStream(localPath);
+    const done = new Promise((resolve, reject) => {
+      out.on('finish', resolve);
+      out.on('error', reject);
+    });
+    // basic-ftp writes into the head of the chain; backpressure from the
+    // throttle propagates back and slows the socket.
+    const head = stages[0];
+    stages.reduce((prev, next) => prev.pipe(next)).pipe(out);
+
     await this._withProgress(onProgress, expectedTotal, () =>
-      this.client.uploadFrom(localPath, remotePath));
+      this.client.downloadTo(head, remotePath));
+    await done;
+  }
+
+  async upload(localPath, remotePath, onProgress, expectedTotal, options) {
+    const stages = this._stages(options, 'to-remote');
+    if (!stages.length) {
+      await this._withProgress(onProgress, expectedTotal, () =>
+        this.client.uploadFrom(localPath, remotePath));
+      return;
+    }
+
+    const source = fs.createReadStream(localPath);
+    const tail = stages.reduce((prev, next) => prev.pipe(next), source);
+
+    await this._withProgress(onProgress, expectedTotal, () =>
+      this.client.uploadFrom(tail, remotePath));
   }
 
   async mkdir(remotePath) {
