@@ -251,7 +251,13 @@ tbody tr.cmp-only.sel, tbody tr.cmp-diff.sel, tbody tr.cmp-newer.sel { backgroun
 }
 .modal.narrow { width: min(460px, 92vw); }
 .modal h2 { margin: 0; padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
-.modal .body { padding: 14px 16px; overflow: auto; }
+.modal .body { padding: 14px 16px; overflow: auto; flex: 1 1 auto; min-height: 0; }
+/* A dialog built from columns sizes itself to the dialog and scrolls inside
+   those columns. Without this the body grows to fit .cols' own height, pushes
+   past the dialog's max-height and puts a second scrollbar around the whole
+   thing - visible in the Site Manager, which scrolled as a block instead of
+   just its site list. */
+.modal .body:has(> .cols) { overflow: hidden; display: flex; flex-direction: column; }
 .modal .foot {
   display: flex; gap: 8px; justify-content: flex-end;
   padding: 10px 16px; border-top: 1px solid var(--border);
@@ -267,7 +273,9 @@ legend { padding: 0 5px; color: var(--muted); font-weight: 600; }
 .row { display: flex; gap: 6px; align-items: center; }
 /* The site list scrolls inside itself - the dialog must not grow with it,
    otherwise the selected site scrolls out of sight. */
-.cols { display: flex; gap: 14px; height: min(62vh, 540px); min-height: 290px; }
+/* height is the preferred size, not a floor: on a short window the columns
+   shrink and their own lists scroll. */
+.cols { display: flex; gap: 14px; flex: 1 1 auto; height: min(62vh, 540px); min-height: 180px; }
 .cols .list {
   width: 215px; overflow: auto;
   border: 1px solid var(--border); border-radius: 8px;
