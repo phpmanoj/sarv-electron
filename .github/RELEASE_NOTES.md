@@ -6,8 +6,8 @@ moment you save.
 
 | Your machine | File |
 |---|---|
-| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.1-arm64.dmg` |
-| Windows 64-bit | `Sarv.Electron.Setup.1.0.1.exe` |
+| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.2-arm64.dmg` |
+| Windows 64-bit | `Sarv.Electron.Setup.1.0.2.exe` |
 
 Intel Macs are not built at the moment.
 
@@ -47,6 +47,15 @@ directory; no administrator rights are needed.
 - **Bookmarks** — global or site-specific, storing both panes' directories
 - Import and export your real FileZilla site manager
 - 25 themes plus custom themes and background images
+
+## Fixed since 1.0.1
+
+- Speed limits were exceeded when a single read was larger than the limit;
+  throttling is now paced across the whole transfer
+- The Site Manager scrolled as one block instead of scrolling its site list,
+  which made a long list hard to use on a shorter window
+- macOS bundles are ad-hoc signed, so `codesign --verify` passes
+- Build-only files no longer ship, shrinking the bundled code by a third
 
 ## Known limitations
 
