@@ -1,7 +1,7 @@
 {
   "name": "sarv-electron",
   "productName": "Sarv Electron",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Sarv Electron - FileZilla-style SFTP/FTP client that opens remote files in your own editor",
   "main": "src/main/main.js",
   "scripts": {

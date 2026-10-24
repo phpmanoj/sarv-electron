@@ -6,8 +6,8 @@ moment you save.
 
 | Your machine | File |
 |---|---|
-| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.2-arm64.dmg` |
-| Windows 64-bit | `Sarv.Electron.Setup.1.0.2.exe` |
+| Mac with Apple Silicon (M1-M4) | `Sarv.Electron-1.0.3-arm64.dmg` |
+| Windows 64-bit | `Sarv.Electron.Setup.1.0.3.exe` |
 
 Intel Macs are not built at the moment.
 
@@ -56,6 +56,8 @@ directory; no administrator rights are needed.
   which made a long list hard to use on a shorter window
 - macOS bundles are ad-hoc signed, so `codesign --verify` passes
 - Build-only files no longer ship, shrinking the bundled code by a third
+- Site rows no longer scroll sideways: the host and remote path line had no
+  truncation, so long paths widened the list and labels were cut off the left
 
 ## Known limitations
 
