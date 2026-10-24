@@ -2,9 +2,16 @@
 const { Transform } = require('stream');
 
 /**
- * Caps throughput at `bytesPerSecond` using a one-second bucket: a chunk is
- * forwarded immediately, and the next chunk is not accepted until the budget
- * for the current second has been paid for. A limit of 0 disables throttling.
+ * Caps throughput at `bytesPerSecond`. A limit of 0 disables throttling.
+ *
+ * Pacing is cumulative: after N bytes the stream is held back until at least
+ * N / limit seconds have passed since it started, so the average rate holds no
+ * matter what size the source delivers. Oversized chunks are split into
+ * tenth-of-a-second slices first - forwarding a whole 200 KB read at once and
+ * then sleeping would both overshoot a short window and arrive in bursts.
+ *
+ * Credit is capped at one second so a stalled source cannot bank unlimited
+ * allowance and then release it in one go.
  *
  * `onBytes` receives the running total, which is how transfers report progress
  * when they run through this stream instead of fastGet/fastPut.
@@ -15,36 +22,43 @@ class Throttle extends Transform {
     this.limit = Number(bytesPerSecond) > 0 ? Math.floor(Number(bytesPerSecond)) : 0;
     this.onBytes = typeof onBytes === 'function' ? onBytes : null;
     this.total = 0;
-    this.windowStart = Date.now();
-    this.windowBytes = 0;
+    this.startedAt = null;
+    this.slice = this.limit ? Math.max(4096, Math.floor(this.limit / 10)) : 0;
   }
 
   _transform(chunk, _encoding, callback) {
-    this.total += chunk.length;
-    if (this.onBytes) this.onBytes(this.total);
-    this.push(chunk);
-
     if (!this.limit) {
-      callback();
+      this.total += chunk.length;
+      if (this.onBytes) this.onBytes(this.total);
+      callback(null, chunk);
       return;
     }
+    if (this.startedAt === null) this.startedAt = Date.now();
+    this._pace(chunk, 0, callback);
+  }
 
-    const now = Date.now();
-    if (now - this.windowStart >= 1000) {
-      this.windowStart = now;
-      this.windowBytes = 0;
-    }
-    this.windowBytes += chunk.length;
-    if (this.windowBytes < this.limit) {
+  /** Emit `chunk` from `offset` one slice at a time, waiting between slices. */
+  _pace(chunk, offset, callback) {
+    if (offset >= chunk.length) {
       callback();
       return;
     }
-    const wait = 1000 - (now - this.windowStart);
+    const end = Math.min(offset + this.slice, chunk.length);
+    this.push(chunk.subarray(offset, end));
+    this.total += end - offset;
+    if (this.onBytes) this.onBytes(this.total);
+
+    const targetMs = (this.total / this.limit) * 1000;
+    const elapsed = Date.now() - this.startedAt;
+    // A source that went quiet must not bank more than a second of allowance.
+    if (elapsed - targetMs > 1000) this.startedAt = Date.now() - targetMs - 1000;
+
+    const wait = targetMs - (Date.now() - this.startedAt);
     if (wait <= 0) {
-      callback();
+      setImmediate(() => this._pace(chunk, end, callback));
       return;
     }
-    setTimeout(callback, wait);
+    setTimeout(() => this._pace(chunk, end, callback), wait);
   }
 }
 
